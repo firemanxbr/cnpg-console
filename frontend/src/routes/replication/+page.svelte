@@ -1,5 +1,4 @@
 <script lang="ts">
-  import { onMount } from 'svelte';
   import { k8s } from '$lib/api/kubernetes';
   import { currentNamespace } from '$lib/stores/namespace';
   import StatusBadge from '$lib/components/StatusBadge.svelte';
@@ -28,12 +27,12 @@
 
   let deleteTarget: { kind: string; name: string } | null = $state(null);
 
-  currentNamespace.subscribe(() => load());
+  $effect(() => { if ($currentNamespace) load(); });
 
   async function load() {
     loading = true;
     const ns = $currentNamespace;
-    if (!ns) return;
+    if (!ns) { loading = false; return; }
     try {
       const [p, s, c] = await Promise.all([
         k8s.publications.list(ns),
@@ -95,7 +94,7 @@
     load();
   }
 
-  onMount(load);
+
 </script>
 
 <div>

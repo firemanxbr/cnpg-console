@@ -1,5 +1,4 @@
 <script lang="ts">
-  import { onMount } from 'svelte';
   import { k8s } from '$lib/api/kubernetes';
   import { currentNamespace } from '$lib/stores/namespace';
   import StatusBadge from '$lib/components/StatusBadge.svelte';
@@ -17,12 +16,12 @@
   let pType: 'rw' | 'ro' = $state('rw');
   let pPoolMode: 'session' | 'transaction' | 'statement' = $state('transaction');
 
-  currentNamespace.subscribe(() => load());
+  $effect(() => { if ($currentNamespace) load(); });
 
   async function load() {
     loading = true;
     const ns = $currentNamespace;
-    if (!ns) return;
+    if (!ns) { loading = false; return; }
     try {
       const [p, c] = await Promise.all([k8s.poolers.list(ns), k8s.clusters.list(ns)]);
       poolers = p.items || [];
@@ -62,7 +61,7 @@
     load();
   }
 
-  onMount(load);
+
 </script>
 
 <div>

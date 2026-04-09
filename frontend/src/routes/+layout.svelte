@@ -4,9 +4,41 @@
   import { currentNamespace, allNamespaces } from '$lib/stores/namespace';
   import { onMount } from 'svelte';
   import { goto } from '$app/navigation';
+  import { page } from '$app/stores';
   import { k8s } from '$lib/api/kubernetes';
   let { children } = $props();
-  onMount(() => { restoreSession(); });
+
+  onMount(() => {
+    restoreSession();
+  });
+
+  // Redirect to login when not authenticated (except on /login itself)
+  $effect(() => {
+    if (!$auth.authenticated && $page.url.pathname !== '/login') {
+      goto('/login');
+    }
+  });
+
+  // Fetch namespaces when authenticated
+  $effect(() => {
+    if ($auth.authenticated) {
+      loadNamespaces();
+    }
+  });
+
+  async function loadNamespaces() {
+    try {
+      const res = await k8s.listNamespaces();
+      const names = (res.items || []).map((ns: any) => ns.metadata.name).sort();
+      allNamespaces.set(names);
+      if (names.length && !$currentNamespace) {
+        currentNamespace.set(names.includes('default') ? 'default' : names[0]);
+      }
+    } catch (e) {
+      console.error('Failed to fetch namespaces:', e);
+    }
+  }
+
   const nav = [
     { href: '/clusters', label: 'Clusters', icon: '🐘' },
     { href: '/backups', label: 'Backups', icon: '💾' },
@@ -35,8 +67,12 @@
   </nav>
   <main class="content">{@render children()}</main>
 </div>
-{:else}
+{:else if $page.url.pathname === '/login'}
   {@render children()}
+{:else}
+  <div class="loading-screen">
+    <p>Redirecting to login...</p>
+  </div>
 {/if}
 
 <style>
@@ -51,4 +87,5 @@
   .user-info { font-size: .8rem; color: rgba(255,255,255,.5); margin-bottom: .5rem; }
   .logout-btn { width: 100%; padding: .4rem; border-radius: 6px; border: 1px solid rgba(255,255,255,.2); background: transparent; color: rgba(255,255,255,.6); cursor: pointer; }
   .content { flex: 1; overflow: auto; padding: 2rem; }
+  .loading-screen { display: flex; align-items: center; justify-content: center; height: 100vh; color: var(--cnpg-gray-400); }
 </style>
