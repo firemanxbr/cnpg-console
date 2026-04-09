@@ -1,5 +1,4 @@
 <script lang="ts">
-  import { onMount } from 'svelte';
   import { k8s } from '$lib/api/kubernetes';
   import { currentNamespace } from '$lib/stores/namespace';
   import StatusBadge from '$lib/components/StatusBadge.svelte';
@@ -13,12 +12,12 @@
   let podLogs = $state('');
   let logsLoading = $state(false);
 
-  currentNamespace.subscribe(() => load());
+  $effect(() => { if ($currentNamespace) load(); });
 
   async function load() {
     loading = true;
     const ns = $currentNamespace;
-    if (!ns) return;
+    if (!ns) { loading = false; return; }
     try {
       const [c, e, p] = await Promise.all([
         k8s.clusters.list(ns),
@@ -54,7 +53,7 @@
   function readyInstances() { return clusters.reduce((sum: number, c: any) => sum + (c.status?.readyInstances || 0), 0); }
   function healthyClusters() { return clusters.filter((c: any) => c.status?.phase === 'Cluster in healthy state').length; }
 
-  onMount(load);
+
 </script>
 
 <div>

@@ -1,5 +1,4 @@
 <script lang="ts">
-  import { onMount } from 'svelte';
   import { k8s } from '$lib/api/kubernetes';
   import { currentNamespace } from '$lib/stores/namespace';
   import StatusBadge from '$lib/components/StatusBadge.svelte';
@@ -10,6 +9,8 @@
   let clusters: any[] = $state([]);
   let loading = $state(true);
   let tab: 'backups' | 'scheduled' = $state('backups');
+
+  $effect(() => { if ($currentNamespace) load(); });
 
   // Create backup form
   let showCreateBackup = $state(false);
@@ -27,12 +28,10 @@
   // Delete confirm
   let deleteTarget: { kind: string; name: string } | null = $state(null);
 
-  currentNamespace.subscribe(() => load());
-
   async function load() {
     loading = true;
     const ns = $currentNamespace;
-    if (!ns) return;
+    if (!ns) { loading = false; return; }
     try {
       const [b, s, c] = await Promise.all([
         k8s.backups.list(ns),
@@ -88,7 +87,7 @@
     load();
   }
 
-  onMount(load);
+
 </script>
 
 <div>

@@ -4,7 +4,7 @@
 
 {#if open}
 <div class="overlay" onclick={onclose} role="dialog" aria-modal="true">
-  <div class="modal" onclick|stopPropagation>
+  <div class="modal" onclick={(e) => e.stopPropagation()}>
     <div class="modal-header">
       <h3>{title}</h3>
       <button class="close-btn" onclick={onclose} aria-label="Close">&times;</button>

@@ -1,5 +1,4 @@
 <script lang="ts">
-  import { onMount } from 'svelte';
   import { k8s } from '$lib/api/kubernetes';
   import { currentNamespace } from '$lib/stores/namespace';
   import StatusBadge from '$lib/components/StatusBadge.svelte';
@@ -20,12 +19,12 @@
   let newSuperuser = $state(false);
   let newDescription = $state('');
 
-  currentNamespace.subscribe(() => load());
+  $effect(() => { if ($currentNamespace) load(); });
 
   async function load() {
     loading = true;
     const ns = $currentNamespace;
-    if (!ns) return;
+    if (!ns) { loading = false; return; }
     try {
       clusters = (await k8s.clusters.list(ns)).items || [];
     } catch {}
@@ -63,7 +62,7 @@
     load();
   }
 
-  onMount(load);
+
 </script>
 
 <div>
@@ -116,7 +115,7 @@
         </div>
         <div class="card-foot">
           <span>{c.metadata.creationTimestamp?.split('T')[0]}</span>
-          <button class="del" onclick|stopPropagation={() => deleteTarget = c.metadata.name}>Delete</button>
+          <button class="del" onclick={(e) => { e.stopPropagation(); deleteTarget = c.metadata.name; }}>Delete</button>
         </div>
       </a>
       {/each}

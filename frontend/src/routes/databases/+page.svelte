@@ -1,5 +1,4 @@
 <script lang="ts">
-  import { onMount } from 'svelte';
   import { k8s } from '$lib/api/kubernetes';
   import { currentNamespace } from '$lib/stores/namespace';
   import StatusBadge from '$lib/components/StatusBadge.svelte';
@@ -18,12 +17,12 @@
   let dTemplate = $state('');
   let dLocale = $state('');
 
-  currentNamespace.subscribe(() => load());
+  $effect(() => { if ($currentNamespace) load(); });
 
   async function load() {
     loading = true;
     const ns = $currentNamespace;
-    if (!ns) return;
+    if (!ns) { loading = false; return; }
     try {
       const [d, c] = await Promise.all([k8s.databases.list(ns), k8s.clusters.list(ns)]);
       dbs = d.items || [];
@@ -57,7 +56,7 @@
     load();
   }
 
-  onMount(load);
+
 </script>
 
 <div>
