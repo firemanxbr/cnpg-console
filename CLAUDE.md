@@ -5,7 +5,7 @@ CNPG Console is an open-source (MIT) web management UI for CloudNativePG Postgre
 
 ## Tech Stack
 - **Frontend**: Svelte 5 + SvelteKit + Tailwind CSS (in `frontend/`)
-- **CLI**: Go 1.22+ with Cobra (in `cmd/cnpg-console/`, `internal/`, `pkg/`)
+- **CLI**: Go 1.25+ with Cobra (in `cmd/cnpg-console/`, `internal/`, `pkg/`)
 - **Deployment**: Helm chart (in `helm/cnpg-console/`)
 - **Auth**: Dex OIDC (configured via `values.yaml`)
 - **Container**: Multi-arch Docker (amd64/arm64)

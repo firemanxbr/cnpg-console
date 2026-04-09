@@ -42,7 +42,7 @@ Open a [Feature Request](https://github.com/firemanxbr/cnpg-console/issues/new?t
 - kubectl ≥ 1.28
 - Helm ≥ 3.12
 - Node.js ≥ 20 LTS
-- Go ≥ 1.22
+- Go >= 1.25
 
 ### Quick Start
 

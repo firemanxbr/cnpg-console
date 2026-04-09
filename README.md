@@ -163,7 +163,7 @@ See [`helm/cnpg-console/values.yaml`](helm/cnpg-console/values.yaml) for the ful
 | [kubectl](https://kubernetes.io/docs/tasks/tools/) | >= 1.28 |
 | [Helm](https://helm.sh/docs/intro/install/) | >= 3.12 |
 | [Node.js](https://nodejs.org/) | >= 20 LTS |
-| [Go](https://go.dev/dl/) | >= 1.22 |
+| [Go](https://go.dev/dl/) | >= 1.25 |
 
 ### 1. Create a Local Kind Cluster
 
