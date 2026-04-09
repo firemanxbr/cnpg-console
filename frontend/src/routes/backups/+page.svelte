@@ -1,6 +1,7 @@
 <script lang="ts">
   import { k8s } from '$lib/api/kubernetes';
   import { currentNamespace } from '$lib/stores/namespace';
+  import { watchCNPGResource, type WatchHandle } from '$lib/api/watch';
   import StatusBadge from '$lib/components/StatusBadge.svelte';
   import ConfirmDialog from '$lib/components/ConfirmDialog.svelte';
 
@@ -10,8 +11,12 @@
   let loading = $state(true);
   let tab: 'backups' | 'scheduled' = $state('backups');
   let errorMsg = $state('');
+  let watchers: WatchHandle[] = [];
 
-  $effect(() => { if ($currentNamespace) load(); });
+  $effect(() => {
+    if ($currentNamespace) load();
+    return () => { watchers.forEach(w => w.close()); };
+  });
 
   // Create backup form
   let showCreateBackup = $state(false);
@@ -31,6 +36,8 @@
 
   async function load() {
     loading = true;
+    watchers.forEach(w => w.close());
+    watchers = [];
     const ns = $currentNamespace;
     if (!ns) { loading = false; return; }
     try {
@@ -42,6 +49,11 @@
       backups = b.items || [];
       scheduled = s.items || [];
       clusters = c.items || [];
+      // Real-time watches — backup status updates live
+      const bItems = { get value() { return backups; }, set value(v) { backups = v; } };
+      const sItems = { get value() { return scheduled; }, set value(v) { scheduled = v; } };
+      watchers.push(watchCNPGResource('backups', ns, bItems));
+      watchers.push(watchCNPGResource('scheduledbackups', ns, sItems));
     } catch {}
     loading = false;
   }

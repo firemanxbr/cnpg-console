@@ -1,6 +1,7 @@
 <script lang="ts">
   import { k8s } from '$lib/api/kubernetes';
   import { currentNamespace } from '$lib/stores/namespace';
+  import { watchCNPGResource, type WatchHandle } from '$lib/api/watch';
   import StatusBadge from '$lib/components/StatusBadge.svelte';
 
   let clusters: any[] = $state([]);
@@ -8,14 +9,19 @@
   let pods: any[] = $state([]);
   let loading = $state(true);
   let tab: 'overview' | 'events' | 'pods' = $state('overview');
+  let watcher: WatchHandle | null = null;
   let selectedPod = $state('');
   let podLogs = $state('');
   let logsLoading = $state(false);
 
-  $effect(() => { if ($currentNamespace) load(); });
+  $effect(() => {
+    if ($currentNamespace) load();
+    return () => { watcher?.close(); };
+  });
 
   async function load() {
     loading = true;
+    watcher?.close();
     const ns = $currentNamespace;
     if (!ns) { loading = false; return; }
     try {
@@ -32,6 +38,9 @@
         )
         .slice(0, 100);
       pods = p.items || [];
+      // Real-time cluster status updates
+      const items = { get value() { return clusters; }, set value(v) { clusters = v; } };
+      watcher = watchCNPGResource('clusters', ns, items);
     } catch {}
     loading = false;
   }

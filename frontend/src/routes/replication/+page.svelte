@@ -1,6 +1,7 @@
 <script lang="ts">
   import { k8s } from '$lib/api/kubernetes';
   import { currentNamespace } from '$lib/stores/namespace';
+  import { watchCNPGResource, type WatchHandle } from '$lib/api/watch';
   import StatusBadge from '$lib/components/StatusBadge.svelte';
   import ConfirmDialog from '$lib/components/ConfirmDialog.svelte';
 
@@ -9,6 +10,7 @@
   let clusters: any[] = $state([]);
   let loading = $state(true);
   let tab: 'publications' | 'subscriptions' = $state('publications');
+  let watchers: WatchHandle[] = [];
 
   // Create publication form
   let showCreatePub = $state(false);
@@ -27,10 +29,15 @@
 
   let deleteTarget: { kind: string; name: string } | null = $state(null);
 
-  $effect(() => { if ($currentNamespace) load(); });
+  $effect(() => {
+    if ($currentNamespace) load();
+    return () => { watchers.forEach(w => w.close()); };
+  });
 
   async function load() {
     loading = true;
+    watchers.forEach(w => w.close());
+    watchers = [];
     const ns = $currentNamespace;
     if (!ns) { loading = false; return; }
     try {
@@ -42,6 +49,10 @@
       publications = p.items || [];
       subscriptions = s.items || [];
       clusters = c.items || [];
+      const pItems = { get value() { return publications; }, set value(v) { publications = v; } };
+      const sItems = { get value() { return subscriptions; }, set value(v) { subscriptions = v; } };
+      watchers.push(watchCNPGResource('publications', ns, pItems));
+      watchers.push(watchCNPGResource('subscriptions', ns, sItems));
     } catch {}
     loading = false;
   }
