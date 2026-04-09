@@ -9,6 +9,7 @@
   let clusters: any[] = $state([]);
   let loading = $state(true);
   let tab: 'backups' | 'scheduled' = $state('backups');
+  let errorMsg = $state('');
 
   $effect(() => { if ($currentNamespace) load(); });
 
@@ -47,28 +48,38 @@
 
   async function createBackup() {
     if (!bCluster) return;
-    await k8s.backups.create($currentNamespace, {
-      apiVersion: 'postgresql.cnpg.io/v1',
-      kind: 'Backup',
-      metadata: { name: bCluster + '-backup-' + Date.now(), namespace: $currentNamespace },
-      spec: { cluster: { name: bCluster }, method: bMethod, target: bTarget },
-    });
-    showCreateBackup = false;
-    bCluster = '';
-    load();
+    errorMsg = '';
+    try {
+      await k8s.backups.create($currentNamespace, {
+        apiVersion: 'postgresql.cnpg.io/v1',
+        kind: 'Backup',
+        metadata: { name: bCluster + '-backup-' + Date.now(), namespace: $currentNamespace },
+        spec: { cluster: { name: bCluster }, method: bMethod, target: bTarget },
+      });
+      showCreateBackup = false;
+      bCluster = '';
+      load();
+    } catch (e: any) {
+      try { const body = JSON.parse(e.message.substring(e.message.indexOf('{'))); errorMsg = body.details?.causes?.[0]?.message || body.message || e.message; } catch { errorMsg = e.message; }
+    }
   }
 
   async function createScheduledBackup() {
     if (!sCluster || !sSchedule) return;
-    await k8s.scheduledbackups.create($currentNamespace, {
-      apiVersion: 'postgresql.cnpg.io/v1',
-      kind: 'ScheduledBackup',
-      metadata: { name: sCluster + '-sched-' + Date.now(), namespace: $currentNamespace },
-      spec: { schedule: sSchedule, cluster: { name: sCluster }, method: sMethod, immediate: sImmediate },
-    });
-    showCreateScheduled = false;
-    sCluster = '';
-    load();
+    errorMsg = '';
+    try {
+      await k8s.scheduledbackups.create($currentNamespace, {
+        apiVersion: 'postgresql.cnpg.io/v1',
+        kind: 'ScheduledBackup',
+        metadata: { name: sCluster + '-sched-' + Date.now(), namespace: $currentNamespace },
+        spec: { schedule: sSchedule, cluster: { name: sCluster }, method: sMethod, immediate: sImmediate },
+      });
+      showCreateScheduled = false;
+      sCluster = '';
+      load();
+    } catch (e: any) {
+      try { const body = JSON.parse(e.message.substring(e.message.indexOf('{'))); errorMsg = body.details?.causes?.[0]?.message || body.message || e.message; } catch { errorMsg = e.message; }
+    }
   }
 
   async function toggleSuspend(s: any) {
@@ -156,6 +167,8 @@
   </div>
   {/if}
 
+  {#if errorMsg}<div class="error-box">{errorMsg} <button class="dismiss" onclick={() => errorMsg = ''}>&times;</button></div>{/if}
+
   <div class="tabs">
     <button class:active={tab==='backups'} onclick={()=>tab='backups'}>Backups ({backups.length})</button>
     <button class:active={tab==='scheduled'} onclick={()=>tab='scheduled'}>Scheduled ({scheduled.length})</button>
@@ -237,4 +250,6 @@
   .toggle { padding: .3rem .6rem; border-radius: 6px; border: 1px solid var(--cnpg-gray-300); background: #dcfce7; color: #166534; font-size: .75rem; cursor: pointer; }
   .toggle.suspended { background: var(--cnpg-gray-100); color: var(--cnpg-gray-500); }
   .empty { text-align: center; padding: 3rem; color: var(--cnpg-gray-400); }
+  .error-box { background: #fee2e2; color: #991b1b; padding: .75rem 1rem; border-radius: 8px; margin-bottom: 1rem; display: flex; justify-content: space-between; align-items: center; font-size: .875rem; }
+  .dismiss { background: none; border: none; color: #991b1b; font-size: 1.25rem; cursor: pointer; padding: 0; line-height: 1; }
 </style>
