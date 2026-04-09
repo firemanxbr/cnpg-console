@@ -1,6 +1,8 @@
 <script lang="ts">
+  import { onDestroy } from 'svelte';
   import { k8s } from '$lib/api/kubernetes';
   import { currentNamespace } from '$lib/stores/namespace';
+  import { watchCNPGResource, type WatchHandle } from '$lib/api/watch';
   import StatusBadge from '$lib/components/StatusBadge.svelte';
   import ConfirmDialog from '$lib/components/ConfirmDialog.svelte';
 
@@ -8,6 +10,7 @@
   let loading = $state(true);
   let showCreate = $state(false);
   let deleteTarget: string | null = $state(null);
+  let watcher: WatchHandle | null = null;
 
   // Create form fields
   let newName = $state('');
@@ -19,14 +22,21 @@
   let newSuperuser = $state(false);
   let newDescription = $state('');
 
-  $effect(() => { if ($currentNamespace) load(); });
+  $effect(() => {
+    if ($currentNamespace) load();
+    return () => { watcher?.close(); };
+  });
 
   async function load() {
     loading = true;
+    watcher?.close();
     const ns = $currentNamespace;
     if (!ns) { loading = false; return; }
     try {
       clusters = (await k8s.clusters.list(ns)).items || [];
+      // Start real-time watch — UI updates instantly on cluster changes
+      const items = { get value() { return clusters; }, set value(v) { clusters = v; } };
+      watcher = watchCNPGResource('clusters', ns, items);
     } catch {}
     loading = false;
   }

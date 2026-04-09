@@ -1,6 +1,7 @@
 <script lang="ts">
   import { k8s } from '$lib/api/kubernetes';
   import { currentNamespace } from '$lib/stores/namespace';
+  import { watchCNPGResource, type WatchHandle } from '$lib/api/watch';
   import StatusBadge from '$lib/components/StatusBadge.svelte';
   import ConfirmDialog from '$lib/components/ConfirmDialog.svelte';
 
@@ -9,6 +10,7 @@
   let loading = $state(true);
   let showCreate = $state(false);
   let deleteTarget: string | null = $state(null);
+  let watcher: WatchHandle | null = null;
 
   let dName = $state('');
   let dCluster = $state('');
@@ -17,16 +19,22 @@
   let dTemplate = $state('');
   let dLocale = $state('');
 
-  $effect(() => { if ($currentNamespace) load(); });
+  $effect(() => {
+    if ($currentNamespace) load();
+    return () => { watcher?.close(); };
+  });
 
   async function load() {
     loading = true;
+    watcher?.close();
     const ns = $currentNamespace;
     if (!ns) { loading = false; return; }
     try {
       const [d, c] = await Promise.all([k8s.databases.list(ns), k8s.clusters.list(ns)]);
       dbs = d.items || [];
       clusters = c.items || [];
+      const items = { get value() { return dbs; }, set value(v) { dbs = v; } };
+      watcher = watchCNPGResource('databases', ns, items);
     } catch {}
     loading = false;
   }
