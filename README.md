@@ -168,35 +168,45 @@ See [`helm/cnpg-console/values.yaml`](helm/cnpg-console/values.yaml) for the ful
 ### 1. Create a Local Kind Cluster
 
 ```bash
-make kind-create        # creates cluster + installs CNPG operator
+make kind-create
 ```
 
-This uses the Kind configuration at [`deploy/kind/kind-config.yaml`](deploy/kind/kind-config.yaml) which creates a 3-node cluster (1 control-plane + 2 workers) with port mappings for HTTP/HTTPS.
+This creates a 3-node Kind cluster and automatically:
+- Installs the **CNPG operator**
+- Deploys **S3Mock** (Apache 2.0 S3-compatible storage) for backup testing
+- Creates a **sample PostgreSQL cluster** (`sample-pg`) with backup config
 
 ### 2. Run the Frontend in Dev Mode
 
 ```bash
-cd frontend
-npm install
-npm run dev             # http://localhost:5173
+# Terminal 1: Start kubectl proxy
+kubectl proxy --port=8001
+
+# Terminal 2: Start the frontend
+cd frontend && npm install && npm run dev
 ```
 
-The Vite dev server proxies `/api` requests to the Kubernetes API server automatically.
+Open **http://localhost:5173** and click **"Dev Login (kubectl proxy)"** to enter the console. The Vite dev server proxies K8s API requests to kubectl proxy automatically.
 
 ### 3. Build and Test the CLI
 
 ```bash
 make cli-build          # output: bin/cnpg-console
 make cli-test           # run Go tests with race detection
-
-# Run preflight checks
-./bin/cnpg-console check
-
-# Install into the Kind cluster
-./bin/cnpg-console install --namespace cnpg-console
+./bin/cnpg-console check  # validate cluster readiness
 ```
 
-### 4. Build Container Images
+### 4. Run E2E Tests
+
+```bash
+# Requires running dev server + kubectl proxy (steps 1-2 above)
+make test-e2e           # headless Playwright tests
+make test-e2e-ui        # Playwright tests with interactive UI
+```
+
+The E2E test suite uses [Playwright](https://playwright.dev/) to test all pages: login, clusters, backups, poolers, databases, replication, monitoring, settings, and navigation.
+
+### 5. Build Container Images
 
 ```bash
 make docker-build       # builds frontend + CLI images
@@ -204,11 +214,29 @@ make kind-load          # loads images into Kind cluster
 make helm-install       # installs Helm chart into cluster
 ```
 
-### 5. Tear Down
+### 6. Tear Down
 
 ```bash
 make kind-delete
 ```
+
+### Demo / Bootstrap Mode
+
+The Helm chart includes a **demo mode** (enabled by default) that creates sample CNPG resources to showcase all features — like a TV display demo. This is controlled by `demo.enabled` in `values.yaml`:
+
+```yaml
+demo:
+  enabled: true    # set to false for production
+```
+
+When enabled, it automatically creates:
+- S3Mock deployment for backup storage
+- PostgreSQL cluster (3 instances)
+- PgBouncer connection pooler
+- Sample database
+- Scheduled daily backup
+
+To disable for production: `helm install ... --set demo.enabled=false`
 
 ---
 
