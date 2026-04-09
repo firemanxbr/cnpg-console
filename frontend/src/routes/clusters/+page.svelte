@@ -141,7 +141,7 @@
   .form { background: #fff; padding: 1.5rem; border-radius: 12px; margin-bottom: 1.5rem; box-shadow: 0 1px 3px rgba(0,0,0,.08); }
   .form h3 { margin: 0 0 1rem; color: var(--cnpg-blue-dark); }
   .form label { display: block; margin-bottom: .75rem; font-size: .875rem; color: var(--cnpg-gray-600); }
-  .form input, .form select { display: block; width: 100%; padding: .5rem .75rem; margin-top: .25rem; border: 1px solid var(--cnpg-gray-300); border-radius: 6px; }
+  .form input { display: block; width: 100%; padding: .5rem .75rem; margin-top: .25rem; border: 1px solid var(--cnpg-gray-300); border-radius: 6px; }
   .form-row { display: grid; grid-template-columns: 1fr 1fr; gap: 1rem; }
   .checkbox { flex-direction: row; display: flex; align-items: center; gap: .5rem; }
   .checkbox input { width: auto; margin: 0; }
