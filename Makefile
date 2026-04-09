@@ -1,4 +1,4 @@
-.PHONY: all cli-build cli-test docker-build docker-push kind-create kind-delete kind-up kind-down test test-frontend test-cli test-e2e lint help
+.PHONY: all cli-build cli-test docker-build docker-push kind-create kind-delete kind-up kind-down destroy test test-frontend test-cli test-e2e lint help
 
 REGISTRY ?= ghcr.io/firemanxbr
 IMAGE_NAME ?= cnpg-console
@@ -63,6 +63,8 @@ kind-create: ## Create Kind cluster with CNPG + S3Mock + sample cluster
 
 kind-delete: ## Delete Kind cluster
 	kind delete cluster --name $(KIND_CLUSTER)
+
+destroy: kind-delete ## Destroy the dev Kind cluster (alias for kind-delete)
 
 kind-load: docker-build ## Load images into Kind
 	kind load docker-image $(REGISTRY)/$(IMAGE_NAME):$(VERSION) --name $(KIND_CLUSTER)
