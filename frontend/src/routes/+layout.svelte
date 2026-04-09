@@ -1,0 +1,54 @@
+<script lang="ts">
+  import '../app.css';
+  import { auth, restoreSession, logout } from '$lib/stores/auth';
+  import { currentNamespace, allNamespaces } from '$lib/stores/namespace';
+  import { onMount } from 'svelte';
+  import { goto } from '$app/navigation';
+  import { k8s } from '$lib/api/kubernetes';
+  let { children } = $props();
+  onMount(() => { restoreSession(); });
+  const nav = [
+    { href: '/clusters', label: 'Clusters', icon: '🐘' },
+    { href: '/backups', label: 'Backups', icon: '💾' },
+    { href: '/poolers', label: 'Poolers', icon: '🔄' },
+    { href: '/databases', label: 'Databases', icon: '🗄️' },
+    { href: '/replication', label: 'Replication', icon: '🔗' },
+    { href: '/monitoring', label: 'Monitoring', icon: '📊' },
+    { href: '/settings', label: 'Settings', icon: '⚙️' },
+  ];
+</script>
+
+{#if $auth.authenticated}
+<div class="shell">
+  <nav class="sidebar">
+    <div class="logo">CNPG Console</div>
+    <div class="nav-items">
+      {#each nav as item}<a href={item.href} class="nav-link"><span>{item.icon}</span> {item.label}</a>{/each}
+    </div>
+    <div class="sidebar-bottom">
+      <select bind:value={$currentNamespace} class="ns-sel">
+        {#each $allNamespaces as ns}<option value={ns}>{ns}</option>{/each}
+      </select>
+      <div class="user-info">{$auth.user?.name}</div>
+      <button onclick={() => { logout(); goto('/login'); }} class="logout-btn">Logout</button>
+    </div>
+  </nav>
+  <main class="content">{@render children()}</main>
+</div>
+{:else}
+  {@render children()}
+{/if}
+
+<style>
+  .shell { display: flex; height: 100vh; }
+  .sidebar { width: 240px; background: var(--cnpg-blue-dark); color: #fff; display: flex; flex-direction: column; }
+  .logo { padding: 1.5rem 1rem; font-size: 1.2rem; font-weight: 700; border-bottom: 1px solid rgba(255,255,255,.1); }
+  .nav-items { flex: 1; padding: 1rem 0; }
+  .nav-link { display: flex; gap: .75rem; padding: .75rem 1.25rem; color: rgba(255,255,255,.7); text-decoration: none; }
+  .nav-link:hover { background: rgba(255,255,255,.08); color: #fff; }
+  .sidebar-bottom { padding: 1rem; border-top: 1px solid rgba(255,255,255,.1); }
+  .ns-sel { width: 100%; padding: .4rem; border-radius: 6px; background: rgba(255,255,255,.05); color: #fff; border: 1px solid rgba(255,255,255,.2); margin-bottom: .5rem; }
+  .user-info { font-size: .8rem; color: rgba(255,255,255,.5); margin-bottom: .5rem; }
+  .logout-btn { width: 100%; padding: .4rem; border-radius: 6px; border: 1px solid rgba(255,255,255,.2); background: transparent; color: rgba(255,255,255,.6); cursor: pointer; }
+  .content { flex: 1; overflow: auto; padding: 2rem; }
+</style>

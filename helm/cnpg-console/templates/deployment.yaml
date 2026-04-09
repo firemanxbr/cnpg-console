@@ -1,0 +1,34 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: {{ include "cnpg-console.fullname" . }}
+  labels: {{- include "cnpg-console.labels" . | nindent 4 }}
+spec:
+  replicas: {{ .Values.replicaCount }}
+  selector:
+    matchLabels: {{- include "cnpg-console.selectorLabels" . | nindent 6 }}
+  template:
+    metadata:
+      labels: {{- include "cnpg-console.selectorLabels" . | nindent 8 }}
+    spec:
+      serviceAccountName: {{ include "cnpg-console.serviceAccountName" . }}
+      securityContext:
+        runAsNonRoot: true
+        runAsUser: 1000
+      containers:
+        - name: {{ .Chart.Name }}
+          image: "{{ .Values.image.repository }}:{{ .Values.image.tag | default .Chart.AppVersion }}"
+          imagePullPolicy: {{ .Values.image.pullPolicy }}
+          ports:
+            - name: http
+              containerPort: 8080
+          env:
+            - name: DEX_ISSUER_URL
+              value: "http://{{ include "cnpg-console.fullname" . }}-dex:5556/dex"
+            - name: DEX_CLIENT_ID
+              value: "cnpg-console"
+          livenessProbe:
+            httpGet: { path: /healthz, port: http }
+          readinessProbe:
+            httpGet: { path: /healthz, port: http }
+          resources: {{- toYaml .Values.resources | nindent 12 }}

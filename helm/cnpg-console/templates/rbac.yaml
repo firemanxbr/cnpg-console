@@ -1,0 +1,38 @@
+{{- if .Values.rbac.create -}}
+apiVersion: rbac.authorization.k8s.io/v1
+kind: ClusterRole
+metadata:
+  name: {{ include "cnpg-console.fullname" . }}
+rules:
+  - apiGroups: ["postgresql.cnpg.io"]
+    resources: [clusters, backups, scheduledbackups, poolers, databases, publications, subscriptions, imagecatalogs, clusterimagecatalogs]
+    verbs: [get, list, watch, create, update, patch, delete]
+  - apiGroups: ["postgresql.cnpg.io"]
+    resources: [clusters/status, backups/status, scheduledbackups/status, poolers/status, databases/status]
+    verbs: [get]
+  - apiGroups: [""]
+    resources: [pods, pods/log, services, events, secrets, configmaps, persistentvolumeclaims, namespaces]
+    verbs: [get, list, watch]
+  - apiGroups: [""]
+    resources: [secrets]
+    verbs: [create, update, patch, delete]
+  - apiGroups: ["storage.k8s.io"]
+    resources: [storageclasses]
+    verbs: [get, list]
+  - apiGroups: ["snapshot.storage.k8s.io"]
+    resources: [volumesnapshots]
+    verbs: [get, list, watch, create, delete]
+---
+apiVersion: rbac.authorization.k8s.io/v1
+kind: ClusterRoleBinding
+metadata:
+  name: {{ include "cnpg-console.fullname" . }}
+roleRef:
+  apiGroup: rbac.authorization.k8s.io
+  kind: ClusterRole
+  name: {{ include "cnpg-console.fullname" . }}
+subjects:
+  - kind: ServiceAccount
+    name: {{ include "cnpg-console.serviceAccountName" . }}
+    namespace: {{ .Release.Namespace }}
+{{- end }}

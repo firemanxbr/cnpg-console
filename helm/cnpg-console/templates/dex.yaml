@@ -1,0 +1,53 @@
+{{- if .Values.dex.enabled -}}
+apiVersion: v1
+kind: Secret
+metadata:
+  name: {{ include "cnpg-console.fullname" . }}-dex
+type: Opaque
+stringData:
+  client-secret: {{ (index .Values.dex.staticClients 0).secret | quote }}
+---
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: {{ include "cnpg-console.fullname" . }}-dex-config
+data:
+  config.yaml: |
+    issuer: http://{{ include "cnpg-console.fullname" . }}-dex:5556/dex
+    storage: { type: memory }
+    web: { http: 0.0.0.0:5556 }
+    staticClients: {{- toYaml .Values.dex.staticClients | nindent 6 }}
+    connectors: {{- toYaml .Values.dex.connectors | nindent 6 }}
+---
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: {{ include "cnpg-console.fullname" . }}-dex
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app.kubernetes.io/name: {{ include "cnpg-console.name" . }}-dex
+  template:
+    metadata:
+      labels:
+        app.kubernetes.io/name: {{ include "cnpg-console.name" . }}-dex
+    spec:
+      containers:
+        - name: dex
+          image: "{{ .Values.dex.image.repository }}:{{ .Values.dex.image.tag }}"
+          command: [dex, serve, /etc/dex/config.yaml]
+          ports: [{ name: http, containerPort: 5556 }]
+          volumeMounts: [{ name: config, mountPath: /etc/dex, readOnly: true }]
+      volumes: [{ name: config, configMap: { name: {{ include "cnpg-console.fullname" . }}-dex-config } }]
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: {{ include "cnpg-console.fullname" . }}-dex
+spec:
+  type: ClusterIP
+  ports: [{ port: 5556, targetPort: http, name: http }]
+  selector:
+    app.kubernetes.io/name: {{ include "cnpg-console.name" . }}-dex
+{{- end }}

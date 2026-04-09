@@ -1,0 +1,62 @@
+replicaCount: 1
+image:
+  repository: ghcr.io/firemanxbr/cnpg-console
+  pullPolicy: IfNotPresent
+  tag: ""
+imagePullSecrets: []
+nameOverride: ""
+fullnameOverride: ""
+serviceAccount:
+  create: true
+  automount: true
+  annotations: {}
+  name: ""
+rbac:
+  create: true
+service:
+  type: ClusterIP
+  port: 8080
+ingress:
+  enabled: false
+  className: ""
+  annotations: {}
+  hosts:
+    - host: cnpg-console.local
+      paths:
+        - path: /
+          pathType: Prefix
+  tls: []
+resources:
+  limits:
+    cpu: 200m
+    memory: 256Mi
+  requests:
+    cpu: 100m
+    memory: 128Mi
+dex:
+  enabled: true
+  image:
+    repository: ghcr.io/dexidp/dex
+    tag: v2.41.1
+  connectors: []
+  # Example:
+  #  - type: github
+  #    id: github
+  #    name: GitHub
+  #    config:
+  #      clientID: ""
+  #      clientSecret: ""
+  #      redirectURI: "https://cnpg-console.example.com/callback"
+  staticClients:
+    - id: cnpg-console
+      name: CNPG Console
+      secret: "change-me-in-production"
+      redirectURIs:
+        - "http://localhost:8080/callback"
+objectStorage:
+  storageClass: ""
+  bucketName: ""
+  endpointURL: ""
+nodeSelector: {}
+tolerations: []
+affinity: {}

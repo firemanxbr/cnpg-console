@@ -1,0 +1,14 @@
+apiVersion: v2
+name: cnpg-console
+description: Web management console for CloudNativePG PostgreSQL clusters
+type: application
+version: 0.1.0
+appVersion: "0.1.0"
+maintainers:
+  - name: firemanxbr
+    url: https://github.com/firemanxbr
+home: https://github.com/firemanxbr/cnpg-console
+sources:
+  - https://github.com/firemanxbr/cnpg-console
+keywords: [postgresql, cloudnativepg, cnpg, kubernetes, console]
+icon: https://cloudnative-pg.io/images/hero_image.svg

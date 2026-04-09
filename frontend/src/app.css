@@ -1,0 +1,12 @@
+@import 'tailwindcss';
+:root {
+  --cnpg-blue: #1b3a5c; --cnpg-blue-light: #2d5f8a; --cnpg-blue-dark: #0f2440;
+  --cnpg-teal: #17b9a0; --cnpg-teal-light: #3fd4bc; --cnpg-teal-dark: #0f8a78;
+  --cnpg-orange: #f5a623; --cnpg-red: #e74c3c; --cnpg-green: #27ae60;
+  --cnpg-gray-50: #f8fafc; --cnpg-gray-100: #f1f5f9; --cnpg-gray-200: #e2e8f0;
+  --cnpg-gray-300: #cbd5e1; --cnpg-gray-400: #94a3b8; --cnpg-gray-500: #64748b;
+  --cnpg-gray-600: #475569; --cnpg-gray-700: #334155; --cnpg-gray-800: #1e293b;
+  --font-body: 'IBM Plex Sans', system-ui, sans-serif;
+  --font-mono: 'IBM Plex Mono', monospace;
+}
+body { font-family: var(--font-body); background: var(--cnpg-gray-50); color: var(--cnpg-gray-800); margin: 0; }
