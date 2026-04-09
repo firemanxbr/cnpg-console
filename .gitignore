@@ -10,3 +10,6 @@ frontend/.svelte-kit/
 .DS_Store
 helm/cnpg-console/charts/*.tgz
 .pkg/
+frontend/test-results/
+frontend/playwright-report/
+.playwright-mcp/

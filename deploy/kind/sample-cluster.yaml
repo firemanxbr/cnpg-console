@@ -1,0 +1,40 @@
+# S3 credentials for S3Mock (accepts any credentials)
+apiVersion: v1
+kind: Secret
+metadata:
+  name: s3-creds
+  namespace: default
+type: Opaque
+stringData:
+  ACCESS_KEY_ID: "dev-access-key"
+  ACCESS_SECRET_KEY: "dev-secret-key"
+---
+# Sample CNPG cluster with barman backup to S3Mock
+apiVersion: postgresql.cnpg.io/v1
+kind: Cluster
+metadata:
+  name: sample-pg
+  namespace: default
+spec:
+  description: "Sample PostgreSQL cluster for development"
+  instances: 3
+  storage:
+    size: 1Gi
+
+  bootstrap:
+    initdb:
+      database: app
+      owner: app
+
+  backup:
+    barmanObjectStore:
+      destinationPath: "s3://cnpg-backups/"
+      endpointURL: "http://s3mock.s3mock.svc.cluster.local"
+      s3Credentials:
+        accessKeyId:
+          name: s3-creds
+          key: ACCESS_KEY_ID
+        secretAccessKey:
+          name: s3-creds
+          key: ACCESS_SECRET_KEY
+    retentionPolicy: "7d"

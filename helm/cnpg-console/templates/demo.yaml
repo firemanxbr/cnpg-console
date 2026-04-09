@@ -1,0 +1,154 @@
+{{- if .Values.demo.enabled -}}
+# ============================================================================
+# DEMO MODE - Creates sample resources to showcase all CNPG Console features
+# Disable with: demo.enabled=false
+# ============================================================================
+
+{{- if .Values.demo.s3mock.enabled }}
+# --- S3Mock (Apache 2.0 S3-compatible storage for backup testing) ---
+apiVersion: v1
+kind: Namespace
+metadata:
+  name: s3mock
+  labels:
+    app.kubernetes.io/managed-by: {{ .Release.Service }}
+    cnpg-console/demo: "true"
+---
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: s3mock
+  namespace: s3mock
+  labels:
+    cnpg-console/demo: "true"
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: s3mock
+  template:
+    metadata:
+      labels:
+        app: s3mock
+    spec:
+      containers:
+        - name: s3mock
+          image: {{ .Values.demo.s3mock.image }}
+          ports:
+            - containerPort: 9090
+              name: http
+          env:
+            - name: initialBuckets
+              value: {{ .Values.demo.s3mock.bucket | quote }}
+          resources:
+            requests:
+              cpu: 100m
+              memory: 128Mi
+            limits:
+              cpu: 500m
+              memory: 256Mi
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: s3mock
+  namespace: s3mock
+  labels:
+    cnpg-console/demo: "true"
+spec:
+  selector:
+    app: s3mock
+  ports:
+    - name: http
+      port: 80
+      targetPort: 9090
+{{- end }}
+---
+# --- S3 credentials (S3Mock accepts any credentials) ---
+apiVersion: v1
+kind: Secret
+metadata:
+  name: demo-s3-creds
+  namespace: {{ .Release.Namespace }}
+  labels:
+    cnpg-console/demo: "true"
+type: Opaque
+stringData:
+  ACCESS_KEY_ID: "demo-access-key"
+  ACCESS_SECRET_KEY: "demo-secret-key"
+---
+# --- Demo PostgreSQL Cluster ---
+apiVersion: postgresql.cnpg.io/v1
+kind: Cluster
+metadata:
+  name: {{ .Values.demo.cluster.name }}
+  namespace: {{ .Release.Namespace }}
+  labels:
+    cnpg-console/demo: "true"
+spec:
+  description: {{ .Values.demo.cluster.description | quote }}
+  instances: {{ .Values.demo.cluster.instances }}
+  storage:
+    size: {{ .Values.demo.cluster.storage }}
+  bootstrap:
+    initdb:
+      database: {{ .Values.demo.cluster.database }}
+      owner: {{ .Values.demo.cluster.owner }}
+  backup:
+    barmanObjectStore:
+      destinationPath: "s3://{{ .Values.demo.s3mock.bucket }}/"
+      endpointURL: "http://s3mock.s3mock.svc.cluster.local"
+      s3Credentials:
+        accessKeyId:
+          name: demo-s3-creds
+          key: ACCESS_KEY_ID
+        secretAccessKey:
+          name: demo-s3-creds
+          key: ACCESS_SECRET_KEY
+    retentionPolicy: "7d"
+---
+# --- Demo PgBouncer Pooler ---
+apiVersion: postgresql.cnpg.io/v1
+kind: Pooler
+metadata:
+  name: {{ .Values.demo.pooler.name }}
+  namespace: {{ .Release.Namespace }}
+  labels:
+    cnpg-console/demo: "true"
+spec:
+  cluster:
+    name: {{ .Values.demo.cluster.name }}
+  instances: {{ .Values.demo.pooler.instances }}
+  type: {{ .Values.demo.pooler.type }}
+  pgbouncer:
+    poolMode: {{ .Values.demo.pooler.poolMode }}
+---
+# --- Demo Database ---
+apiVersion: postgresql.cnpg.io/v1
+kind: Database
+metadata:
+  name: {{ .Values.demo.cluster.name }}-{{ .Values.demo.database.name }}
+  namespace: {{ .Release.Namespace }}
+  labels:
+    cnpg-console/demo: "true"
+spec:
+  cluster:
+    name: {{ .Values.demo.cluster.name }}
+  name: {{ .Values.demo.database.name }}
+  owner: {{ .Values.demo.database.owner }}
+---
+# --- Demo Scheduled Backup ---
+apiVersion: postgresql.cnpg.io/v1
+kind: ScheduledBackup
+metadata:
+  name: {{ .Values.demo.scheduledBackup.name }}
+  namespace: {{ .Release.Namespace }}
+  labels:
+    cnpg-console/demo: "true"
+spec:
+  schedule: {{ .Values.demo.scheduledBackup.schedule | quote }}
+  cluster:
+    name: {{ .Values.demo.cluster.name }}
+  method: {{ .Values.demo.scheduledBackup.method }}
+  backupOwnerReference: cluster
+{{- end }}

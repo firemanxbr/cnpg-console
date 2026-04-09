@@ -1,4 +1,4 @@
-.PHONY: all cli-build cli-test docker-build docker-push kind-create kind-delete test test-frontend test-cli lint help
+.PHONY: all cli-build cli-test docker-build docker-push kind-create kind-delete kind-up kind-down test test-frontend test-cli test-e2e lint help
 
 REGISTRY ?= ghcr.io/firemanxbr
 IMAGE_NAME ?= cnpg-console
@@ -46,14 +46,20 @@ docker-push: ## Push images
 	docker push $(REGISTRY)/$(IMAGE_NAME)-cli:$(VERSION)
 
 # --- Kind ---
-kind-create: ## Create Kind cluster with CNPG
-	@echo "Creating Kind cluster..."
+kind-create: ## Create Kind cluster with CNPG + S3Mock + sample cluster
+	@echo "==> Creating Kind cluster..."
 	kind create cluster --name $(KIND_CLUSTER) --config deploy/kind/kind-config.yaml
-	@echo "Installing CNPG operator..."
+	@echo "==> Installing CNPG operator..."
 	kubectl apply --server-side -f https://raw.githubusercontent.com/cloudnative-pg/cloudnative-pg/release-1.25/releases/cnpg-1.25.1.yaml
-	@echo "Waiting for CNPG operator..."
+	@echo "==> Waiting for CNPG operator..."
 	kubectl wait --for=condition=Available --timeout=120s deployment/cnpg-controller-manager -n cnpg-system
-	@echo "Kind cluster ready!"
+	@echo "==> Deploying S3Mock (Apache 2.0 S3-compatible storage)..."
+	kubectl apply -f deploy/kind/s3mock.yaml
+	kubectl wait --for=condition=Available --timeout=60s deployment/s3mock -n s3mock
+	@echo "==> Creating sample PostgreSQL cluster with backup config..."
+	kubectl apply -f deploy/kind/sample-cluster.yaml
+	@echo ""
+	@echo "Kind cluster ready! Run 'make dev' to start developing."
 
 kind-delete: ## Delete Kind cluster
 	kind delete cluster --name $(KIND_CLUSTER)
@@ -61,13 +67,30 @@ kind-delete: ## Delete Kind cluster
 kind-load: docker-build ## Load images into Kind
 	kind load docker-image $(REGISTRY)/$(IMAGE_NAME):$(VERSION) --name $(KIND_CLUSTER)
 
+kind-up: kind-create ## Alias: create cluster + full dev setup
+
+kind-down: kind-delete ## Alias: tear down cluster
+
+# --- Development ---
+dev: ## Start full dev environment (kubectl proxy + frontend)
+	@echo "Starting kubectl proxy on port 8001..."
+	@kubectl proxy --port=8001 &
+	@echo "Starting frontend dev server..."
+	cd frontend && npm install && npm run dev
+
 # --- Test & Lint ---
 test: test-cli test-frontend ## Run all tests
 
-test-frontend: ## Run frontend tests
+test-frontend: ## Run frontend unit tests
 	cd frontend && npm run test
 
 test-cli: cli-test ## Alias for cli-test
+
+test-e2e: ## Run Playwright E2E tests (requires running dev server + kubectl proxy)
+	cd frontend && npx playwright test
+
+test-e2e-ui: ## Run Playwright E2E tests with UI
+	cd frontend && npx playwright test --ui
 
 lint: ## Lint all code
 	cd frontend && npm run lint
