@@ -12,12 +12,22 @@ function k8sProxy() {
       server.middlewares.use((req: any, res: any, next: any) => {
         if (req.url?.startsWith('/api/') || req.url?.startsWith('/apis/')) {
           const target = new URL(req.url, K8S_TARGET);
+          const isWatch = req.url.includes('watch=true');
           const proxyReq = http.request(
             target,
             { method: req.method, headers: req.headers },
             (proxyRes) => {
               res.writeHead(proxyRes.statusCode || 502, proxyRes.headers);
-              proxyRes.pipe(res);
+              if (isWatch) {
+                // Stream watch events without buffering
+                proxyRes.on('data', (chunk: Buffer) => {
+                  res.write(chunk);
+                  if (typeof res.flush === 'function') res.flush();
+                });
+                proxyRes.on('end', () => res.end());
+              } else {
+                proxyRes.pipe(res);
+              }
             },
           );
           proxyReq.on('error', () => {

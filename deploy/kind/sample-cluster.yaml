@@ -1,4 +1,9 @@
-# S3 credentials for S3Mock (accepts any credentials)
+# =============================================================================
+# Demo resources for CNPG Console development
+# Creates a full set of CNPG resources to showcase all console features
+# =============================================================================
+
+# --- S3 credentials for S3Mock (accepts any credentials) ---
 apiVersion: v1
 kind: Secret
 metadata:
@@ -9,7 +14,7 @@ stringData:
   ACCESS_KEY_ID: "dev-access-key"
   ACCESS_SECRET_KEY: "dev-secret-key"
 ---
-# Sample CNPG cluster with barman backup to S3Mock
+# --- PostgreSQL Cluster (3 instances with backup to S3Mock) ---
 apiVersion: postgresql.cnpg.io/v1
 kind: Cluster
 metadata:
@@ -20,12 +25,10 @@ spec:
   instances: 3
   storage:
     size: 1Gi
-
   bootstrap:
     initdb:
       database: app
       owner: app
-
   backup:
     barmanObjectStore:
       destinationPath: "s3://cnpg-backups/"
@@ -38,3 +41,66 @@ spec:
           name: s3-creds
           key: ACCESS_SECRET_KEY
     retentionPolicy: "7d"
+---
+# --- PgBouncer Connection Pooler ---
+apiVersion: postgresql.cnpg.io/v1
+kind: Pooler
+metadata:
+  name: sample-pg-pooler
+  namespace: default
+spec:
+  cluster:
+    name: sample-pg
+  instances: 1
+  type: rw
+  pgbouncer:
+    poolMode: transaction
+---
+# --- Declarative Database ---
+apiVersion: postgresql.cnpg.io/v1
+kind: Database
+metadata:
+  name: sample-pg-analytics
+  namespace: default
+spec:
+  cluster:
+    name: sample-pg
+  name: analytics
+  owner: app
+---
+# --- Second Database ---
+apiVersion: postgresql.cnpg.io/v1
+kind: Database
+metadata:
+  name: sample-pg-reporting
+  namespace: default
+spec:
+  cluster:
+    name: sample-pg
+  name: reporting
+  owner: app
+---
+# --- Scheduled Backup (daily at 2am) ---
+apiVersion: postgresql.cnpg.io/v1
+kind: ScheduledBackup
+metadata:
+  name: sample-pg-daily
+  namespace: default
+spec:
+  schedule: "0 0 2 * * *"
+  cluster:
+    name: sample-pg
+  method: barmanObjectStore
+  backupOwnerReference: cluster
+---
+# --- On-demand Backup ---
+apiVersion: postgresql.cnpg.io/v1
+kind: Backup
+metadata:
+  name: sample-pg-backup-initial
+  namespace: default
+spec:
+  cluster:
+    name: sample-pg
+  method: barmanObjectStore
+  target: prefer-standby
