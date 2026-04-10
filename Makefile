@@ -58,8 +58,16 @@ kind-create: ## Create Kind cluster with CNPG + S3Mock + sample cluster
 	kubectl wait --for=condition=Available --timeout=60s deployment/s3mock -n s3mock
 	@echo "==> Creating sample PostgreSQL cluster with backup config..."
 	kubectl apply -f deploy/kind/sample-cluster.yaml
+	@echo "==> Waiting for sample cluster to be ready (this may take a few minutes)..."
+	@kubectl wait --for=condition=Ready --timeout=300s cluster/sample-pg -n default 2>/dev/null || echo "    Cluster still starting — resources applied, they will reconcile when ready."
 	@echo ""
-	@echo "Kind cluster ready! Run 'make dev' to start developing."
+	@echo "Kind cluster ready with demo resources!"
+	@echo "  Cluster:   sample-pg (3 instances)"
+	@echo "  Pooler:    sample-pg-pooler (PgBouncer)"
+	@echo "  Databases: analytics, reporting"
+	@echo "  Backup:    sample-pg-daily (scheduled), sample-pg-backup-initial"
+	@echo ""
+	@echo "Run 'make dev' to start developing."
 
 kind-delete: ## Delete Kind cluster
 	kind delete cluster --name $(KIND_CLUSTER)
